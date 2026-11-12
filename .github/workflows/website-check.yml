@@ -1,0 +1,37 @@
+name: Website prüfen
+
+on:
+  push:
+    branches: [entwicklung]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  website-check:
+    name: Statische Website prüfen
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository abrufen
+        uses: actions/checkout@v4
+      - name: HTML-Dateien und Startseite prüfen
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          class Checker(HTMLParser):
+              pass
+          root = Path(".")
+          assert (root / "index.html").is_file(), "index.html fehlt"
+          html_files = sorted(root.rglob("*.html"))
+          assert html_files, "Keine HTML-Dateien gefunden"
+          for path in html_files:
+              data = path.read_text(encoding="utf-8")
+              assert data.strip(), f"Leere HTML-Datei: {path}"
+              Checker(convert_charrefs=True).feed(data)
+              print(f"OK: {path}")
+          print(f"{len(html_files)} HTML-Dateien geprüft.")
+          PY
